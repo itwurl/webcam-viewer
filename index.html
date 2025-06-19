@@ -187,7 +187,6 @@
         }
         
         function drawAvatar(keypoints) {
-            // Simple stick figure avatar
             const scale = 1.5;
             const offsetX = 320;
             const offsetY = 240;
@@ -207,53 +206,108 @@
             const leftAnkle = keypoints.find(k => k.name === 'left_ankle');
             const rightAnkle = keypoints.find(k => k.name === 'right_ankle');
             
-            // Draw only if keypoints are detected with good confidence
             if (nose && leftShoulder && rightShoulder && 
                 leftHip && rightHip && leftShoulder.score > 0.3 && 
                 rightShoulder.score > 0.3) {
                 
-                // Head
+                // Head with baseball cap
                 avatarCtx.beginPath();
                 avatarCtx.arc(
                     offsetX + (nose.x - 320) * scale, 
                     offsetY + (nose.y - 240) * scale, 
-                    30, 0, 2 * Math.PI
+                    25, 0, 2 * Math.PI
                 );
-                avatarCtx.fillStyle = '#3498db';
+                avatarCtx.fillStyle = '#FFD700'; // Gold for skin tone
                 avatarCtx.fill();
                 
-                // Body
+                // Cap
                 avatarCtx.beginPath();
                 avatarCtx.moveTo(
-                    offsetX + ((leftShoulder.x + rightShoulder.x)/2 - 320) * scale,
-                    offsetY + ((leftShoulder.y + rightShoulder.y)/2 - 240) * scale
+                    offsetX + (nose.x - 320 - 30) * scale,
+                    offsetY + (nose.y - 240 - 15) * scale
+                );
+                avatarCtx.lineTo(
+                    offsetX + (nose.x - 320 + 30) * scale,
+                    offsetY + (nose.y - 240 - 15) * scale
+                );
+                avatarCtx.lineTo(
+                    offsetX + (nose.x - 320 + 20) * scale,
+                    offsetY + (nose.y - 240 - 30) * scale
+                );
+                avatarCtx.lineTo(
+                    offsetX + (nose.x - 320 - 20) * scale,
+                    offsetY + (nose.y - 240 - 30) * scale
+                );
+                avatarCtx.closePath();
+                avatarCtx.fillStyle = '#FF0000'; // Red cap
+                avatarCtx.fill();
+                
+                // Whistle (around neck)
+                avatarCtx.beginPath();
+                avatarCtx.arc(
+                    offsetX + (nose.x - 320) * scale,
+                    offsetY + (nose.y - 240 + 35) * scale,
+                    8, 0, 2 * Math.PI
+                );
+                avatarCtx.fillStyle = '#FFFFFF';
+                avatarCtx.fill();
+                
+                // Torso (t-shirt)
+                avatarCtx.beginPath();
+                avatarCtx.moveTo(
+                    offsetX + (leftShoulder.x - 320) * scale,
+                    offsetY + (leftShoulder.y - 240) * scale
+                );
+                avatarCtx.lineTo(
+                    offsetX + (rightShoulder.x - 320) * scale,
+                    offsetY + (rightShoulder.y - 240) * scale
                 );
                 avatarCtx.lineTo(
                     offsetX + ((leftHip.x + rightHip.x)/2 - 320) * scale,
                     offsetY + ((leftHip.y + rightHip.y)/2 - 240) * scale
                 );
-                avatarCtx.lineWidth = 8;
-                avatarCtx.strokeStyle = '#3498db';
-                avatarCtx.stroke();
+                avatarCtx.closePath();
+                avatarCtx.fillStyle = '#0000FF'; // Blue shirt
+                avatarCtx.fill();
                 
-                // Arms
+                // Shorts
+                avatarCtx.beginPath();
+                avatarCtx.moveTo(
+                    offsetX + (leftHip.x - 320) * scale,
+                    offsetY + (leftHip.y - 240) * scale
+                );
+                avatarCtx.lineTo(
+                    offsetX + (rightHip.x - 320) * scale,
+                    offsetY + (rightHip.y - 240) * scale
+                );
+                avatarCtx.lineTo(
+                    offsetX + (rightHip.x - 320 - 15) * scale,
+                    offsetY + (rightHip.y - 240 + 40) * scale
+                );
+                avatarCtx.lineTo(
+                    offsetX + (leftHip.x - 320 + 15) * scale,
+                    offsetY + (leftHip.y - 240 + 40) * scale
+                );
+                avatarCtx.closePath();
+                avatarCtx.fillStyle = '#FFFFFF'; // White shorts
+                avatarCtx.fill();
+                
+                // Arms and legs with sporty look
                 if (leftShoulder && leftElbow && leftWrist) {
-                    drawLimb(leftShoulder, leftElbow, leftWrist);
+                    drawLimb(leftShoulder, leftElbow, leftWrist, '#FFD700', 8); // Skin tone
                 }
                 if (rightShoulder && rightElbow && rightWrist) {
-                    drawLimb(rightShoulder, rightElbow, rightWrist);
+                    drawLimb(rightShoulder, rightElbow, rightWrist, '#FFD700', 8);
                 }
-                
-                // Legs
                 if (leftHip && leftKnee && leftAnkle) {
-                    drawLimb(leftHip, leftKnee, leftAnkle);
+                    drawLimb(leftHip, leftKnee, leftAnkle, '#FFD700', 10); // Thicker legs
                 }
                 if (rightHip && rightKnee && rightAnkle) {
-                    drawLimb(rightHip, rightKnee, rightAnkle);
+                    drawLimb(rightHip, rightKnee, rightAnkle, '#FFD700', 10);
                 }
             }
             
-            function drawLimb(joint1, joint2, joint3) {
+            function drawLimb(joint1, joint2, joint3, color, width) {
                 if (joint1.score > 0.3 && joint2.score > 0.3 && joint3.score > 0.3) {
                     avatarCtx.beginPath();
                     avatarCtx.moveTo(
@@ -268,8 +322,8 @@
                         offsetX + (joint3.x - 320) * scale,
                         offsetY + (joint3.y - 240) * scale
                     );
-                    avatarCtx.lineWidth = 6;
-                    avatarCtx.strokeStyle = '#3498db';
+                    avatarCtx.lineWidth = width;
+                    avatarCtx.strokeStyle = color;
                     avatarCtx.stroke();
                 }
             }
