@@ -3,6 +3,7 @@ version: '3.8'
 services:
   webcam-viewer:
     build: .
+    image: itwurl/webcam-viewer:latest
     container_name: webcam-viewer
     restart: unless-stopped
     ports:
