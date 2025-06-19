@@ -1,0 +1,5 @@
+# Ignoriere alle unnötigen Dateien
+.git
+.gitignore
+node_modules
+.DS_Store
