@@ -1,0 +1,15 @@
+version: '3.8'
+
+services:
+  webcam-viewer:
+    build: .
+    container_name: webcam-viewer
+    restart: unless-stopped
+    ports:
+      - "8080:80"
+      - "8443:443"
+    volumes:
+      - ./index.html:/usr/share/nginx/html/index.html
+    environment:
+      - NGINX_HOST=localhost
+      - NGINX_PORT=80
