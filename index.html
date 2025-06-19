@@ -242,15 +242,19 @@
                 avatarCtx.fillStyle = '#FF0000'; // Red cap
                 avatarCtx.fill();
                 
-                // Whistle (around neck)
+                // Neck area - simple connection
                 avatarCtx.beginPath();
-                avatarCtx.arc(
+                avatarCtx.moveTo(
                     offsetX + (nose.x - 320) * scale,
-                    offsetY + (nose.y - 240 + 35) * scale,
-                    8, 0, 2 * Math.PI
+                    offsetY + (nose.y - 240 + 25) * scale
                 );
-                avatarCtx.fillStyle = '#FFFFFF';
-                avatarCtx.fill();
+                avatarCtx.lineTo(
+                    offsetX + ((leftShoulder.x + rightShoulder.x)/2 - 320) * scale,
+                    offsetY + ((leftShoulder.y + rightShoulder.y)/2 - 240) * scale
+                );
+                avatarCtx.lineWidth = 5;
+                avatarCtx.strokeStyle = '#FFD700';
+                avatarCtx.stroke();
                 
                 // Torso (t-shirt)
                 avatarCtx.beginPath();
@@ -332,6 +336,13 @@
         // Clientseitige Webcam-Initialisierung
         async function initWebcam() {
             try {
+                // Wiederverwenden falls vorhanden und aktiv
+                if (currentStream && currentStream.active) {
+                    video.srcObject = currentStream;
+                    return true;
+                }
+                
+                // Neue Erlaubnis nur wenn nötig
                 currentStream = await navigator.mediaDevices.getUserMedia({ 
                     video: { width: 640, height: 480 },
                     audio: false 
@@ -357,6 +368,11 @@
                 modelSelect.disabled = false;
                 
                 await setupPoseDetection();
+                
+                // Automatically start pose detection
+                if (!poseDetectionActive) {
+                    togglePoseDetection();
+                }
             } catch (err) {
                 console.error('Error:', err);
                 alert('Fehler: ' + err.message);
@@ -381,17 +397,80 @@
 
         poseButton.addEventListener('click', togglePoseDetection);
 
+        let lastPoseDetectionTime = 0;
+        const POSE_TIMEOUT = 1000; // 1 second timeout
+        
         function togglePoseDetection() {
             poseDetectionActive = !poseDetectionActive;
             
             if (poseDetectionActive) {
                 poseButton.textContent = 'Pose stoppen';
+                poseButton.style.backgroundColor = '#00aa00';
+                lastPoseDetectionTime = Date.now();
+                
+                // Ensure status indicator exists
+                let statusIndicator = document.getElementById('poseStatus');
+                if (!statusIndicator) {
+                    statusIndicator = document.createElement('div');
+                    statusIndicator.id = 'poseStatus';
+                    statusIndicator.style.position = 'absolute';
+                    statusIndicator.style.bottom = '10px';
+                    statusIndicator.style.left = '10px';
+                    statusIndicator.style.padding = '5px 10px';
+                    statusIndicator.style.backgroundColor = 'rgba(0,0,0,0.7)';
+                    statusIndicator.style.color = '#ccffcc';
+                    statusIndicator.style.borderRadius = '4px';
+                    document.querySelector('.avatar-container').appendChild(statusIndicator);
+                }
+                statusIndicator.textContent = '✓ Pose-Erkennung wird gestartet...';
+                
                 detectPose();
+                updatePoseStatus();
             } else {
                 poseButton.textContent = 'Pose-Erkennung';
+                poseButton.style.backgroundColor = '';
                 cancelAnimationFrame(animationFrameId);
                 ctx.clearRect(0, 0, outputCanvas.width, outputCanvas.height);
             }
+        }
+        
+        function updatePoseStatus() {
+            const statusIndicator = document.getElementById('poseStatus');
+            if (!statusIndicator) return;
+            
+            const timeSinceLastPose = Date.now() - lastPoseDetectionTime;
+            if (timeSinceLastPose > POSE_TIMEOUT) {
+                statusIndicator.textContent = '⚠️ Pose-Erkennung inaktiv';
+                statusIndicator.style.color = '#ffcccc';
+            } else {
+                statusIndicator.textContent = '✓ Pose-Erkennung aktiv';
+                statusIndicator.style.color = '#ccffcc';
+            }
+            
+            if (poseDetectionActive) {
+                setTimeout(updatePoseStatus, 200);
+            }
+        }
+        
+        async function detectPose() {
+            if (!poseDetectionActive || !detector) return;
+            
+            try {
+                const poses = await detector.estimatePoses(video);
+                lastPoseDetectionTime = Date.now();
+                drawPoses(poses);
+            } catch (error) {
+                console.error('Pose detection error:', error);
+                // Try to recover by recreating detector
+                try {
+                    detector = null;
+                    await setupPoseDetection();
+                } catch (recoveryError) {
+                    console.error('Recovery failed:', recoveryError);
+                }
+            }
+            
+            animationFrameId = requestAnimationFrame(detectPose);
         }
 
         modelSelect.addEventListener('change', async () => {
