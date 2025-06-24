@@ -140,18 +140,38 @@
             detector = await poseDetection.createDetector(model, detectorConfig);
         }
 
+        // Optimized pose detection with frame rate control
+        let lastFrameTime = 0;
+        const TARGET_FPS = 30;
+        const FRAME_INTERVAL = 1000 / TARGET_FPS;
+        
         async function detectPose() {
             if (!poseDetectionActive || !detector) return;
             
-            const poses = await detector.estimatePoses(video);
-            drawPoses(poses);
+            const now = performance.now();
+            if (now - lastFrameTime < FRAME_INTERVAL) {
+                animationFrameId = requestAnimationFrame(detectPose);
+                return;
+            }
+            lastFrameTime = now;
+            
+            try {
+                const poses = await detector.estimatePoses(video);
+                drawPoses(poses);
+            } catch (error) {
+                console.error('Pose detection error:', error);
+            }
             
             animationFrameId = requestAnimationFrame(detectPose);
         }
 
         function drawPoses(poses) {
-            ctx.clearRect(0, 0, outputCanvas.width, outputCanvas.height);
-            avatarCtx.clearRect(0, 0, avatarCanvas.width, avatarCanvas.height);
+            // Only clear if necessary
+            if (!poses || poses.length === 0) {
+                ctx.clearRect(0, 0, outputCanvas.width, outputCanvas.height);
+                avatarCtx.clearRect(0, 0, avatarCanvas.width, avatarCanvas.height);
+                return;
+            }
             
             if (poses && poses.length > 0) {
                 const keypoints = poses[0].keypoints;
@@ -242,7 +262,7 @@
                 avatarCtx.fillStyle = '#FF0000'; // Red cap
                 avatarCtx.fill();
                 
-                // Neck area - simple connection
+                // Direct connection from head to torso
                 avatarCtx.beginPath();
                 avatarCtx.moveTo(
                     offsetX + (nose.x - 320) * scale,
@@ -250,7 +270,7 @@
                 );
                 avatarCtx.lineTo(
                     offsetX + ((leftShoulder.x + rightShoulder.x)/2 - 320) * scale,
-                    offsetY + ((leftShoulder.y + rightShoulder.y)/2 - 240) * scale
+                    offsetY + ((leftShoulder.y + rightShoulder.y)/2 - 240 + 10) * scale
                 );
                 avatarCtx.lineWidth = 5;
                 avatarCtx.strokeStyle = '#FFD700';
