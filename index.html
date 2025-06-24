@@ -166,14 +166,12 @@
         }
 
         function drawPoses(poses) {
-            // Only clear if necessary
-            if (!poses || poses.length === 0) {
+            // Only clear and draw if we have valid poses
+            if (poses && poses.length > 0) {
+                // Clear canvas only when needed
                 ctx.clearRect(0, 0, outputCanvas.width, outputCanvas.height);
                 avatarCtx.clearRect(0, 0, avatarCanvas.width, avatarCanvas.height);
-                return;
-            }
-            
-            if (poses && poses.length > 0) {
+                
                 const keypoints = poses[0].keypoints;
                 
                 // Draw keypoints on webcam
@@ -211,21 +209,17 @@
             const offsetX = 320;
             const offsetY = 240;
             
-            // Find keypoints
-            const nose = keypoints.find(k => k.name === 'nose');
-            const leftShoulder = keypoints.find(k => k.name === 'left_shoulder');
-            const rightShoulder = keypoints.find(k => k.name === 'right_shoulder');
-            const leftElbow = keypoints.find(k => k.name === 'left_elbow');
-            const rightElbow = keypoints.find(k => k.name === 'right_elbow');
-            const leftWrist = keypoints.find(k => k.name === 'left_wrist');
-            const rightWrist = keypoints.find(k => k.name === 'right_wrist');
-            const leftHip = keypoints.find(k => k.name === 'left_hip');
-            const rightHip = keypoints.find(k => k.name === 'right_hip');
-            const leftKnee = keypoints.find(k => k.name === 'left_knee');
-            const rightKnee = keypoints.find(k => k.name === 'right_knee');
-            const leftAnkle = keypoints.find(k => k.name === 'left_ankle');
-            const rightAnkle = keypoints.find(k => k.name === 'right_ankle');
+            // Cache keypoints once
+            const keypointMap = {};
+            keypoints.forEach(k => keypointMap[k.name] = k);
             
+            const nose = keypointMap['nose'];
+            const leftShoulder = keypointMap['left_shoulder'];
+            const rightShoulder = keypointMap['right_shoulder'];
+            const leftHip = keypointMap['left_hip'];
+            const rightHip = keypointMap['right_hip'];
+            
+            // Only proceed if we have valid core keypoints
             if (nose && leftShoulder && rightShoulder && 
                 leftHip && rightHip && leftShoulder.score > 0.3 && 
                 rightShoulder.score > 0.3) {
@@ -262,19 +256,7 @@
                 avatarCtx.fillStyle = '#FF0000'; // Red cap
                 avatarCtx.fill();
                 
-                // Direct connection from head to torso
-                avatarCtx.beginPath();
-                avatarCtx.moveTo(
-                    offsetX + (nose.x - 320) * scale,
-                    offsetY + (nose.y - 240 + 25) * scale
-                );
-                avatarCtx.lineTo(
-                    offsetX + ((leftShoulder.x + rightShoulder.x)/2 - 320) * scale,
-                    offsetY + ((leftShoulder.y + rightShoulder.y)/2 - 240 + 10) * scale
-                );
-                avatarCtx.lineWidth = 5;
-                avatarCtx.strokeStyle = '#FFD700';
-                avatarCtx.stroke();
+                
                 
                 // Torso (t-shirt)
                 avatarCtx.beginPath();
@@ -316,19 +298,23 @@
                 avatarCtx.fillStyle = '#FFFFFF'; // White shorts
                 avatarCtx.fill();
                 
-                // Arms and legs with sporty look
-                if (leftShoulder && leftElbow && leftWrist) {
-                    drawLimb(leftShoulder, leftElbow, leftWrist, '#FFD700', 8); // Skin tone
-                }
-                if (rightShoulder && rightElbow && rightWrist) {
-                    drawLimb(rightShoulder, rightElbow, rightWrist, '#FFD700', 8);
-                }
-                if (leftHip && leftKnee && leftAnkle) {
-                    drawLimb(leftHip, leftKnee, leftAnkle, '#FFD700', 10); // Thicker legs
-                }
-                if (rightHip && rightKnee && rightAnkle) {
-                    drawLimb(rightHip, rightKnee, rightAnkle, '#FFD700', 10);
-                }
+                // Draw limbs more efficiently
+                const limbs = [
+                    { start: 'left_shoulder', middle: 'left_elbow', end: 'left_wrist', width: 8 },
+                    { start: 'right_shoulder', middle: 'right_elbow', end: 'right_wrist', width: 8 },
+                    { start: 'left_hip', middle: 'left_knee', end: 'left_ankle', width: 10 },
+                    { start: 'right_hip', middle: 'right_knee', end: 'right_ankle', width: 10 }
+                ];
+
+                limbs.forEach(limb => {
+                    const start = keypointMap[limb.start];
+                    const middle = keypointMap[limb.middle];
+                    const end = keypointMap[limb.end];
+                    if (start && middle && end && 
+                        start.score > 0.3 && middle.score > 0.3 && end.score > 0.3) {
+                        drawLimb(start, middle, end, '#FFD700', limb.width);
+                    }
+                });
             }
             
             function drawLimb(joint1, joint2, joint3, color, width) {
@@ -474,6 +460,13 @@
         
         async function detectPose() {
             if (!poseDetectionActive || !detector) return;
+            
+            const now = performance.now();
+            if (now - lastFrameTime < FRAME_INTERVAL) {
+                animationFrameId = requestAnimationFrame(detectPose);
+                return;
+            }
+            lastFrameTime = now;
             
             try {
                 const poses = await detector.estimatePoses(video);
