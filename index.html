@@ -63,8 +63,16 @@
             justify-content: center;
             align-items: flex-start;
             margin: 0 auto;
-            max-width: 1320px;
-            gap: 40px;
+            max-width: 100%;
+            gap: 0;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                flex-direction: column;
+                align-items: center;
+                gap: 20px;
+            }
         }
         .video-container, .avatar-container {
             position: relative;
@@ -88,6 +96,14 @@
 </head>
 <body>
     <h1>Webcam Viewer mit Pose-Erkennung</h1>
+    <div style="margin: 20px auto; max-width: 600px; text-align: left; background: #f5f5f5; padding: 15px; border-radius: 5px;">
+        <p style="margin-top: 0; font-weight: bold;">Für beste Performance empfehlen wir:</p>
+        <ul style="margin-bottom: 0;">
+            <li>✓ Kabelgebundene Internetverbindung (LAN)</li>
+            <li>✓ Moderne CPU/GPU (ab Intel i5/Ryzen 5 oder vergleichbar)</li>
+            <li>✓ Chrome/Firefox Browser</li>
+        </ul>
+    </div>
     <div class="container">
         <div class="video-container">
             <video id="video" autoplay playsinline></video>
@@ -102,6 +118,7 @@
         <button id="stopButton" disabled>Stop Webcam</button>
         <button id="poseButton" disabled>Pose-Erkennung</button>
         <select id="modelSelect" disabled>
+            <option value="movenet-lightning">MoveNet Lightning (empfohlen)</option>
             <option value="movenet">MoveNet</option>
             <option value="blazepose">BlazePose</option>
         </select>
@@ -133,11 +150,31 @@
 
         async function setupPoseDetection() {
             await tf.ready();
-            const model = poseDetection.SupportedModels.MoveNet;
-            const detectorConfig = {
-                modelType: poseDetection.movenet.modelType.SINGLEPOSE_THUNDER
-            };
-            detector = await poseDetection.createDetector(model, detectorConfig);
+            const selectedModel = modelSelect.value;
+            
+            if (selectedModel === 'movenet-lightning') {
+                const model = poseDetection.SupportedModels.MoveNet;
+                const detectorConfig = {
+                    modelType: poseDetection.movenet.modelType.SINGLEPOSE_LIGHTNING
+                };
+                detector = await poseDetection.createDetector(model, detectorConfig);
+            } 
+            else if (selectedModel === 'movenet') {
+                const model = poseDetection.SupportedModels.MoveNet;
+                const detectorConfig = {
+                    modelType: poseDetection.movenet.modelType.SINGLEPOSE_THUNDER
+                };
+                detector = await poseDetection.createDetector(model, detectorConfig);
+            }
+            else if (selectedModel === 'blazepose') {
+                detector = await poseDetection.createDetector(
+                    poseDetection.SupportedModels.BlazePose,
+                    {
+                        runtime: 'tfjs',
+                        enableSmoothing: true
+                    }
+                );
+            }
         }
 
         // Optimized pose detection with frame rate control
