@@ -90,7 +90,31 @@
             gap: 0;
         }
 
-        @media (max-width: 768px) {
+        @media (max-width: 768px) and (orientation: portrait) {
+            .container {
+                flex-direction: column;
+                align-items: center;
+                gap: 20px;
+                height: 100vh;
+            }
+            .avatar-container {
+                display: none;
+            }
+            .video-container {
+                width: 100vh;
+                height: 100vw;
+                transform: rotate(90deg);
+                transform-origin: center;
+                margin-top: calc((100vh - 100vw)/2);
+                margin-bottom: calc((100vh - 100vw)/2);
+            }
+            #video, #output {
+                width: 100% !important;
+                height: 100% !important;
+                object-fit: cover;
+            }
+        }
+        @media (max-width: 768px) and (orientation: landscape) {
             .container {
                 flex-direction: column;
                 align-items: center;
