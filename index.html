@@ -274,12 +274,12 @@
         
         function drawAvatar(keypoints) {
             const isMobile = window.innerWidth <= 768;
-            const scale = isMobile ? 1.5 : 2.0; // Increased scale for better visibility
-            const offsetX = 320; // Fixed center for portrait
-            const offsetY = 240; // Fixed center for portrait
+            const scale = isMobile ? 1.5 : 1.2;
+            const offsetX = 320;
+            const offsetY = 240;
             const minScore = isMobile ? 0.4 : 0.3;
             
-            console.log('Drawing avatar in portrait mode');
+            console.log(`Avatar settings - isMobile: ${isMobile}, scale: ${scale}`);
             
             // Cache keypoints once
             const keypointMap = {};
