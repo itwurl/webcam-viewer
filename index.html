@@ -91,7 +91,7 @@
         }
 
         @media (max-width: 768px) {
-            h1, .container > div:not(.video-container) {
+            h1, .hardware-requirements, .container > div:not(.video-container) {
                 display: none;
             }
             .container {
@@ -146,6 +146,14 @@
 </head>
 <body>
     <h1>Webcam Viewer mit Pose-Erkennung</h1>
+    <p class="hardware-requirements">
+        Systemvoraussetzungen: <br>
+        - Prozessor: Mindestens Intel Core i5 / AMD Ryzen 5 <br>
+        - Grafikkarte: Dedizierte GPU empfohlen <br>
+        - Internet: Stabile LAN-Verbindung für MoveNet <br>
+        - Webcam: HD-Auflösung (720p+) empfohlen <br>
+        - Mobile Geräte: Nur eingeschränkte Funktionen
+    </p>
     <!-- Performance hint removed for mobile optimization -->
     <div class="container">
         <div class="video-container">
