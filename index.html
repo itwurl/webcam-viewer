@@ -90,42 +90,35 @@
             gap: 0;
         }
 
-        @media (max-width: 768px) and (orientation: portrait) {
-            .container {
-                flex-direction: column;
-                align-items: center;
-                gap: 20px;
-                height: 100vh;
-            }
-            .avatar-container {
+        @media (max-width: 768px) {
+            h1, .container > div:not(.video-container) {
                 display: none;
             }
+            .container {
+                padding: 0;
+                margin: 0;
+                height: calc(100vh - 80px);
+            }
             .video-container {
-                width: 100vh;
-                height: 100vw;
-                transform: rotate(90deg);
-                transform-origin: center;
-                margin-top: calc((100vh - 100vw)/2);
-                margin-bottom: calc((100vh - 100vw)/2);
+                width: 100vw;
+                height: calc(100vh - 80px);
+                max-width: none;
+                max-height: none;
+                margin: 0;
+                box-shadow: none;
             }
             #video, #output {
                 width: 100% !important;
                 height: 100% !important;
-                object-fit: cover;
             }
-        }
-        @media (max-width: 768px) and (orientation: landscape) {
-            .container {
-                flex-direction: column;
-                align-items: center;
-                gap: 20px;
-            }
-            .avatar-container {
-                display: none;
-            }
-            .video-container {
-                width: 100vw;
-                max-width: 100%;
+            .button-group {
+                position: fixed;
+                bottom: 10px;
+                left: 5%;
+                right: 5%;
+                width: 90%;
+                margin: 0;
+                z-index: 1000;
             }
         }
         .video-container, .avatar-container {
