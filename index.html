@@ -2,7 +2,7 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, screen-orientation=landscape">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Webcam Viewer mit Pose-Erkennung</title>
     <!-- Load mediapipe pose first -->
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.5.1635989132"></script>
@@ -290,12 +290,13 @@
         
         function drawAvatar(keypoints) {
             const isMobile = window.innerWidth <= 768;
-            const scale = isMobile ? 1.5 : 1.2;
+            const isPortrait = window.innerHeight > window.innerWidth;
+            const scale = isMobile ? (isPortrait ? 1.8 : 1.5) : 1.2;
             const offsetX = 320;
             const offsetY = 240;
             const minScore = isMobile ? 0.4 : 0.3;
             
-            console.log(`Avatar settings - isMobile: ${isMobile}, scale: ${scale}`);
+            if (!isMobile) console.log(`Avatar settings - isMobile: ${isMobile}, isPortrait: ${isPortrait}, scale: ${scale}`);
             
             // Cache keypoints once
             const keypointMap = {};
@@ -395,7 +396,6 @@
                 ];
 
                 // Simplified coordinate handling - no swaps needed for portrait
-                console.log('Processing keypoints for portrait mode');
 
                 limbs.forEach(limb => {
                     const start = keypointMap[limb.start];
@@ -412,8 +412,8 @@
                 if (joint1.score > 0.3 && joint2.score > 0.3 && joint3.score > 0.3) {
                     avatarCtx.beginPath();
                     avatarCtx.moveTo(
-                        offsetX + (joint1.x - 320) * scale,
-                        offsetY + (joint1.y - 240) * scale
+                    offsetX + (joint1.x - 320) * (isPortrait ? scale * 0.9 : scale),
+                    offsetY + (joint1.y - 240) * (isPortrait ? scale * 1.1 : scale)
                     );
                     avatarCtx.lineTo(
                         offsetX + (joint2.x - 320) * scale,
