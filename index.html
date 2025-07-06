@@ -239,6 +239,7 @@
             
             const keypoints = poses[0].keypoints;
             const isMobile = window.innerWidth <= 768;
+            const isLandscape = window.innerWidth > window.innerHeight;
             const minScore = isMobile ? 0.4 : 0.3;
             
             // Draw keypoints
@@ -273,9 +274,10 @@
         
         function drawAvatar(keypoints) {
             const isMobile = window.innerWidth <= 768;
+            const isLandscape = window.innerWidth > window.innerHeight;
             const scale = isMobile ? 1.2 : 1.5;
-            const offsetX = 320;
-            const offsetY = 240;
+            const offsetX = isLandscape ? 240 : 320;
+            const offsetY = isLandscape ? 320 : 240;
             const minScore = isMobile ? 0.4 : 0.3;
             
             // Cache keypoints once
@@ -367,13 +369,32 @@
                 avatarCtx.fillStyle = '#FFFFFF'; // White shorts
                 avatarCtx.fill();
                 
-                // Draw limbs more efficiently
+                // Draw limbs with orientation awareness
                 const limbs = [
                     { start: 'left_shoulder', middle: 'left_elbow', end: 'left_wrist', width: 8 },
                     { start: 'right_shoulder', middle: 'right_elbow', end: 'right_wrist', width: 8 },
                     { start: 'left_hip', middle: 'left_knee', end: 'left_ankle', width: 10 },
                     { start: 'right_hip', middle: 'right_knee', end: 'right_ankle', width: 10 }
                 ];
+
+                // Adjust for landscape orientation if needed
+                if (isLandscape) {
+                    // Swap x/y coordinates for limbs in landscape
+                    const swapCoords = (point) => {
+                        return {
+                            x: point.y,
+                            y: point.x,
+                            score: point.score,
+                            name: point.name
+                        };
+                    };
+
+                    keypoints = keypoints.map(k => ({
+                        ...k,
+                        x: k.y,
+                        y: k.x
+                    }));
+                }
 
                 limbs.forEach(limb => {
                     const start = keypointMap[limb.start];
