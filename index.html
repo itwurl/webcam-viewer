@@ -274,11 +274,12 @@
         
         function drawAvatar(keypoints) {
             const isMobile = window.innerWidth <= 768;
-            const isLandscape = window.innerWidth > window.innerHeight;
-            const scale = isMobile ? 1.2 : 1.5;
-            const offsetX = isLandscape ? 240 : 320;
-            const offsetY = isLandscape ? 320 : 240;
+            const scale = isMobile ? 1.5 : 2.0; // Increased scale for better visibility
+            const offsetX = 320; // Fixed center for portrait
+            const offsetY = 240; // Fixed center for portrait
             const minScore = isMobile ? 0.4 : 0.3;
+            
+            console.log('Drawing avatar in portrait mode');
             
             // Cache keypoints once
             const keypointMap = {};
@@ -377,24 +378,8 @@
                     { start: 'right_hip', middle: 'right_knee', end: 'right_ankle', width: 10 }
                 ];
 
-                // Adjust for landscape orientation if needed
-                if (isLandscape) {
-                    // Swap x/y coordinates for limbs in landscape
-                    const swapCoords = (point) => {
-                        return {
-                            x: point.y,
-                            y: point.x,
-                            score: point.score,
-                            name: point.name
-                        };
-                    };
-
-                    keypoints = keypoints.map(k => ({
-                        ...k,
-                        x: k.y,
-                        y: k.x
-                    }));
-                }
+                // Simplified coordinate handling - no swaps needed for portrait
+                console.log('Processing keypoints for portrait mode');
 
                 limbs.forEach(limb => {
                     const start = keypointMap[limb.start];
