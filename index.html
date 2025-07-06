@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Webcam Viewer mit Pose-Erkennung</title>
+    <!-- Load mediapipe pose first -->
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.5.1635989132"></script>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/pose-detection"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils"></script>
@@ -34,7 +36,26 @@
             display: flex;
             gap: 10px;
             justify-content: center;
-            margin: 40px 0;
+            position: sticky;
+            bottom: 20px;
+            padding: 15px;
+            background: rgba(255,255,255,0.9);
+            border-radius: 10px;
+            margin: 20px auto;
+            max-width: 90%;
+            flex-wrap: wrap;
+            z-index: 100;
+        }
+
+        @media (max-width: 768px) {
+            .button-group {
+                position: fixed;
+                bottom: 10px;
+                left: 5%;
+                right: 5%;
+                width: 90%;
+                margin: 0;
+            }
         }
         #stopButton {
             background: #cc0000;
@@ -77,10 +98,13 @@
         }
         .video-container, .avatar-container {
             position: relative;
-            width: 640px;
-            height: 480px;
+            width: 90vw;
+            height: calc(90vw * 0.75); /* 4:3 aspect ratio */
+            max-width: 640px;
+            max-height: 480px;
             flex: 0 0 auto;
             box-shadow: 0 0 10px rgba(0,0,0,0.5);
+            margin: 0 auto;
         }
         .video-container {
             background: #000;
@@ -119,9 +143,8 @@
         <button id="stopButton" disabled>Stop Webcam</button>
         <button id="poseButton" disabled>Pose-Erkennung</button>
         <select id="modelSelect" disabled>
-            <option value="movenet-lightning">MoveNet Lightning (empfohlen)</option>
-            <option value="movenet">MoveNet</option>
-            <option value="blazepose">BlazePose</option>
+            <option value="movenet-lightning">MoveNet Lightning (schnell)</option>
+            <option value="movenet">MoveNet (präzise)</option>
         </select>
     </div>
     
@@ -153,29 +176,33 @@
             await tf.ready();
             const selectedModel = modelSelect.value;
             
-            if (selectedModel === 'movenet-lightning') {
-                const model = poseDetection.SupportedModels.MoveNet;
-                const detectorConfig = {
-                    modelType: poseDetection.movenet.modelType.SINGLEPOSE_LIGHTNING
-                };
-                detector = await poseDetection.createDetector(model, detectorConfig);
-            } 
-            else if (selectedModel === 'movenet') {
-                const model = poseDetection.SupportedModels.MoveNet;
-                const detectorConfig = {
-                    modelType: poseDetection.movenet.modelType.SINGLEPOSE_THUNDER
-                };
-                detector = await poseDetection.createDetector(model, detectorConfig);
+            // Clear previous detector if exists
+            if (detector) {
+                detector.dispose();
+                detector = null;
             }
-            else if (selectedModel === 'blazepose') {
-                detector = await poseDetection.createDetector(
-                    poseDetection.SupportedModels.BlazePose,
-                    {
-                        runtime: 'tfjs',
-                        enableSmoothing: true
-                    }
-                );
+
+            try {
+                if (selectedModel === 'movenet-lightning') {
+                    const model = poseDetection.SupportedModels.MoveNet;
+                    const detectorConfig = {
+                        modelType: poseDetection.movenet.modelType.SINGLEPOSE_LIGHTNING
+                    };
+                    detector = await poseDetection.createDetector(model, detectorConfig);
+                } 
+                else if (selectedModel === 'movenet') {
+                    const model = poseDetection.SupportedModels.MoveNet;
+                    const detectorConfig = {
+                        modelType: poseDetection.movenet.modelType.SINGLEPOSE_THUNDER
+                    };
+                    detector = await poseDetection.createDetector(model, detectorConfig);
+                }
+            } catch (error) {
+                console.error('Model initialization error:', error);
+                alert(`Failed to initialize ${selectedModel}: ${error.message}`);
+                return false;
             }
+            return true;
         }
 
         // Optimized pose detection with frame rate control
@@ -204,45 +231,44 @@
         }
 
         function drawPoses(poses) {
-            // Only clear and draw if we have valid poses
-            if (poses && poses.length > 0) {
-                // Clear canvas only when needed
-                ctx.clearRect(0, 0, outputCanvas.width, outputCanvas.height);
-                avatarCtx.clearRect(0, 0, avatarCanvas.width, avatarCanvas.height);
-                
-                const keypoints = poses[0].keypoints;
-                
-                // Draw keypoints on webcam
-                const isMobile = window.innerWidth <= 768;
-                const minScore = isMobile ? 0.4 : 0.3;
-                
-                keypoints.forEach(keypoint => {
-                    if (keypoint.score > minScore) {
-                        ctx.beginPath();
-                        ctx.arc(keypoint.x, keypoint.y, 5, 0, 2 * Math.PI);
-                        ctx.fillStyle = 'red';
-                        ctx.fill();
-                    }
-                });
-                
-                // Draw skeleton on webcam
-                const connections = poseDetection.util.getAdjacentPairs(poseDetection.SupportedModels.MoveNet);
-                connections.forEach(([i, j]) => {
-                    const kp1 = keypoints[i];
-                    const kp2 = keypoints[j];
-                    if (kp1.score > minScore && kp2.score > minScore) {
-                        ctx.beginPath();
-                        ctx.moveTo(kp1.x, kp1.y);
-                        ctx.lineTo(kp2.x, kp2.y);
-                        ctx.lineWidth = 2;
-                        ctx.strokeStyle = 'white';
-                        ctx.stroke();
-                    }
-                });
-                
-                // Draw avatar
-                drawAvatar(keypoints);
-            }
+            if (!poses || poses.length === 0) return;
+
+            // Clear canvas only when needed
+            ctx.clearRect(0, 0, outputCanvas.width, outputCanvas.height);
+            avatarCtx.clearRect(0, 0, avatarCanvas.width, avatarCanvas.height);
+            
+            const keypoints = poses[0].keypoints;
+            const isMobile = window.innerWidth <= 768;
+            const minScore = isMobile ? 0.4 : 0.3;
+            
+            // Draw keypoints
+            keypoints.forEach(keypoint => {
+                if (keypoint.score > minScore) {
+                    ctx.beginPath();
+                    ctx.arc(keypoint.x, keypoint.y, 5, 0, 2 * Math.PI);
+                    ctx.fillStyle = 'red';
+                    ctx.fill();
+                }
+            });
+            
+            // Draw skeleton for MoveNet
+            const connections = poseDetection.util.getAdjacentPairs(poseDetection.SupportedModels.MoveNet);
+            
+            connections.forEach(([i, j]) => {
+                const kp1 = keypoints[i];
+                const kp2 = keypoints[j];
+                if (kp1 && kp2 && kp1.score > minScore && kp2.score > minScore) {
+                    ctx.beginPath();
+                    ctx.moveTo(kp1.x, kp1.y);
+                    ctx.lineTo(kp2.x, kp2.y);
+                    ctx.lineWidth = 2;
+                    ctx.strokeStyle = 'white';
+                    ctx.stroke();
+                }
+            });
+            
+            // Draw avatar
+            drawAvatar(keypoints);
         }
         
         function drawAvatar(keypoints) {
@@ -416,11 +442,24 @@
                 poseButton.disabled = false;
                 modelSelect.disabled = false;
                 
-                await setupPoseDetection();
+                const initSuccess = await setupPoseDetection();
                 
-                // Automatically start pose detection
-                if (!poseDetectionActive) {
-                    togglePoseDetection();
+                // Force start detection if initialization succeeded
+                if (initSuccess && detector) {
+                    if (!poseDetectionActive) {
+                        poseDetectionActive = true;
+                        poseButton.textContent = 'Pose stoppen';
+                        poseButton.style.backgroundColor = '#00aa00';
+                    }
+                    lastPoseDetectionTime = Date.now();
+                    
+                    // Ensure video stream is ready
+                    if (video.srcObject && video.srcObject.active) {
+                        console.log('Starting pose detection...');
+                        detectPose();
+                    } else {
+                        console.warn('Video stream not ready for detection');
+                    }
                 }
             } catch (err) {
                 console.error('Error:', err);
@@ -502,7 +541,15 @@
         }
         
         async function detectPose() {
-            if (!poseDetectionActive || !detector) return;
+            // Verify all required components are active
+            if (!poseDetectionActive || !detector || !video.srcObject || !video.srcObject.active) {
+                console.log('Detection inactive - state:', {
+                    poseDetectionActive,
+                    detector: !!detector,
+                    videoStream: !!video.srcObject
+                });
+                return;
+            }
             
             const now = performance.now();
             if (now - lastFrameTime < FRAME_INTERVAL) {
@@ -512,17 +559,31 @@
             lastFrameTime = now;
             
             try {
+                // Verify video stream first
+                if (!video.srcObject || !video.srcObject.active) {
+                    throw new Error('Video stream not active');
+                }
+
                 const poses = await detector.estimatePoses(video);
-                lastPoseDetectionTime = Date.now();
-                drawPoses(poses);
+                console.log('Pose results:', poses);
+                if (poses && poses.length > 0) {
+                    lastPoseDetectionTime = Date.now();
+                    drawPoses(poses);
+                } else {
+                    console.warn('No poses detected - check camera positioning');
+                }
             } catch (error) {
-                console.error('Pose detection error:', error);
-                // Try to recover by recreating detector
+                console.error('BlazePose detection failed:', error);
+                // Full reset on error
                 try {
-                    detector = null;
+                    if (detector) {
+                        detector.dispose();
+                        detector = null;
+                    }
                     await setupPoseDetection();
                 } catch (recoveryError) {
                     console.error('Recovery failed:', recoveryError);
+                    togglePoseDetection(); // Turn off on persistent errors
                 }
             }
             
@@ -530,10 +591,32 @@
         }
 
         modelSelect.addEventListener('change', async () => {
+            console.log('Switching to model:', modelSelect.value);
+            
+            // Stop current detection
             if (poseDetectionActive) {
                 togglePoseDetection();
             }
-            await setupPoseDetection();
+            
+            // Clean up previous detector
+            if (detector) {
+                console.log('Disposing previous detector');
+                detector.dispose();
+                detector = null;
+            }
+            
+            try {
+                await setupPoseDetection();
+                console.log('Successfully switched to', modelSelect.value);
+                
+                // Restart detection if webcam is active
+                if (video.srcObject && video.srcObject.active) {
+                    togglePoseDetection();
+                }
+            } catch (error) {
+                console.error('Failed to switch models:', error);
+                alert(`Failed to switch to ${modelSelect.value}: ${error.message}`);
+            }
         });
     </script>
 </body>
