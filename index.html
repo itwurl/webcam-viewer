@@ -2,7 +2,7 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, screen-orientation=landscape">
     <title>Webcam Viewer mit Pose-Erkennung</title>
     <!-- Load mediapipe pose first -->
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.5.1635989132"></script>
@@ -55,6 +55,22 @@
                 right: 5%;
                 width: 90%;
                 margin: 0;
+            }
+            
+            /* Portrait mode warning */
+            @media (orientation: portrait) {
+                body::before {
+                    content: "Bitte drehen Sie Ihr Gerät in den Landscape-Modus für die beste Nutzererfahrung";
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    right: 0;
+                    background: rgba(0,0,0,0.8);
+                    color: white;
+                    padding: 15px;
+                    text-align: center;
+                    z-index: 1000;
+                }
             }
         }
         #stopButton {
